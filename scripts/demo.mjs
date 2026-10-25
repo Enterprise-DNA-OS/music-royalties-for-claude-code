@@ -1,0 +1,2 @@
+import {getDb,loadEnv} from './lib/db.mjs';import {migrate} from './migrate.mjs';import {seed} from './seed.mjs';import {run,print} from './royalties.mjs';
+loadEnv();if(process.env.DATABASE_URL)throw Error('Demo refuses DATABASE_URL');const db=await getDb();try{await migrate(db);await seed(db);for(const cmd of ['attention','recoupment','unmatched']){console.log('\n'+cmd);print(await run(db,[cmd,'--period=2026-Q3']));}}finally{await db.close();}

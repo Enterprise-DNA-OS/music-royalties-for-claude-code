@@ -1,115 +1,96 @@
-<h1 align="center">Music Royalties for Claude Code</h1>
+# Music Royalties for Claude Code
 
-<p align="center">
-  <strong>The open-source music royalty desk that is just a database and Claude Code.</strong>
-</p>
+Recording income, rights-holder shares and recoupment working papers in a database you own.
 
-<p align="center">
-  Created by <a href="https://www.enterprisedna.co"><strong>Enterprise DNA</strong></a>. Free and open source. Works with Claude Code, Codex, OpenCode or Cursor.
-</p>
+## Three ways to own it
 
-<!-- three-doors -->
-<table align="center">
-  <tr>
-    <td align="center"><strong>Do it yourself</strong><br/>Clone it, run it, own it. Free, MIT.<br/><a href="#quick-start">Quick start</a></td>
-    <td align="center"><strong>We customise it</strong><br/>Your fields, your rules, your Melino data brought across.<br/><a href="https://enterprisedna.co/omni/book/?utm_source=github&utm_medium=readme&utm_campaign=melino">Book a call</a></td>
-    <td align="center"><strong>We run it for you</strong><br/>Installed, connected and operated inside Omni. Setup fee, then a retainer.<br/><a href="https://enterprisedna.co/omni/instead-of/melino?utm_source=github&utm_medium=readme&utm_campaign=melino">How it works</a></td>
-  </tr>
-</table>
+- **Do it yourself.** Install the free MIT-licensed base, test the fictional label and import a prepared Melino income export. Claude Code, Codex, OpenCode or Cursor runs the same commands. Hosting and agent use have separate costs.
+- **We customise it.** Enterprise DNA fits your contracts, source reports, statement format and review rules. Your version can include a web front end or a different stack. One setup fee, then a retainer.
+- **We run it for you.** Omni by Enterprise DNA operates the agreed installation, connections, backups and support. One setup fee, then a retainer. [Book 30 minutes with Sam](https://enterprisedna.co/omni/book/?offer=replace-software&utm_medium=readme).
 
-<p align="center">
-  <a href="#what-is-this">What is this</a> &bull;
-  <a href="#why-no-front-end">Why no front end</a> &bull;
-  <a href="#quick-start">Quick start</a> &bull;
-  <a href="#the-commands">Commands</a> &bull;
-  <a href="#instead-of-melino">Instead of Melino</a> &bull;
-  <a href="#want-it-installed-and-run-for-you">Installed for you</a> &bull;
-  <a href="#license">License</a>
-</p>
+## The bill and the scope
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Node-20+-339933?style=flat-square" alt="Node 20+" />
-  <img src="https://img.shields.io/badge/PostgreSQL-any-336791?style=flat-square" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/PGlite-embedded-3ecf8e?style=flat-square" alt="PGlite" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="MIT License" />
-</p>
+Melino lists its Label + Publishing + Supplier Portal configuration from EUR1,000 per month, or EUR12,000 for twelve months. Label alone starts at EUR500 monthly and combined Label + Publishing at EUR800 monthly. Catalogue size and options affect the quote. These are published configurations, not a customer invoice. [Pricing checked 25 October 2026](https://melino.com/pricing/).
 
----
+This is a narrower recorded-music royalty working desk: catalogue, signed-agreement references, fixed net-income shares, recoupment, source reconciliation and statement review. Melino also covers distribution, publishing and portals. Those functions are not supplied by this base. It makes no payments, calculates no tax and sends no statements.
 
-## What is this
+## Run the fictional label
 
-Music Royalties for Claude Code does the job you pay Melino for, as a Postgres database and a set of agent commands. There is no web front end. You open the folder in [Claude Code](https://claude.com/claude-code) (or Codex, OpenCode, Cursor: see `AGENTS.md`) and ask for what you want in plain language. It runs the right query, and it can answer questions the Melino dashboard cannot.
-
-<!-- TODO(author): the annual bill. One sentence: what a 10 to 50 person business typically pays Melino per year, all in, with a source. -->
-
-Want the same thing with a web front end, or built on a different stack? That is a customisation, and it is exactly what Enterprise DNA does: [book a call](https://enterprisedna.co/omni/book/?utm_source=github&utm_medium=readme&utm_campaign=melino).
-
-<!-- TODO(author): two or three sentences on what this specific product covers and who it is for. -->
-
-## Why no front end
-
-- The front end was only ever there because the database was hard to talk to. That is no longer true.
-- Your data sits in plain Postgres tables you own. Any tool can read them. No export, no lock-in.
-- No seats, no tiers, no add-ons. Read [docs/why-no-front-end.md](docs/why-no-front-end.md) for the honest trade-offs too.
-
-## Quick start
-
-Sixty seconds, no database install (an embedded Postgres runs inside Node):
+Node 20 or later. No API key or paid service needed.
 
 ```bash
-git clone https://github.com/Enterprise-DNA-OS/music-royalties-for-claude-code.git
-cd music-royalties-for-claude-code
 npm install
+npm test
 npm run demo
+npm run royalties -- weekly-review --period=2026-Q3
+npm run docs
+npm run view
 ```
 
-Then open the folder in Claude Code and type a slash command. <!-- TODO(author): name the first command to try. -->
+With DATABASE_URL unset, PGlite persists under .data/db or DATA_DIR. Set DATABASE_URL for PostgreSQL and run npm run migrate. Seed and demo refuse server databases before connection. Seed leaves an existing partner register untouched. For real data use a separate empty DATA_DIR, migrate and add your own catalogue, contracts and periods. Never seed a business database.
 
-### Use it with your own Postgres or Supabase
+## The industry's weekly work
 
-Copy `.env.example` to `.env`, set `DATABASE_URL`, then `npm run migrate`. Same commands, shared data, no per-seat fee.
+1. /attention and /unmatched identify periods and distributor lines waiting on evidence.
+2. /income, /sales and /reconcile check net-income totals against original reports.
+3. /recoupment and /costs show which agreed advances and costs absorb the royalty share.
+4. /contract-expiry and /actions-due identify rights and close questions needing an owner.
+5. /compliance, /calculate and /approve-statement prepare a reviewed close. /draft-statement writes the private working paper; /lock-period preserves the completed period.
 
-## The commands
+34 CLI operations with --json (and --compact for shorter human recoupment reports), and 36 slash-command recipes including /customise and /new-view. Exact codes, case-insensitive names and partial IDs resolve records; ambiguous matches list candidates and exit 1. Writes require a declared --actor and run inside a serialised transaction. The name is documentary evidence, not authentication.
 
-<!-- TODO(author): a table of the slash commands in .claude/commands and what each one does. -->
+## Ten questions this build answers
 
-| Command | What it does |
-|---|---|
-| `/...` | ... |
+These are working questions, not claims that Melino's configurable reports cannot answer them.
 
-## Instead of Melino
+1. Which quarter is late and still missing source review? /attention.
+2. Which recording identifiers are unmatched? /unmatched.
+3. What net income came from each store and territory? /income.
+4. Which original report supplied this income line? /sales.
+5. What did each recording earn under its agreed share? /recoupment.
+6. Which artist still has an unrecouped advance? /recoupment.
+7. Which recoupments have supporting evidence? /costs.
+8. Whose recording agreement expires in the next 90 days? /contract-expiry.
+9. Who changed an income amount, and what was it before? /history.
+10. Which check prevents this quarter from being locked? /compliance.
 
-<!-- TODO(author): how to bring data across from Melino; link docs/replace-melino.md -->
+## Bring Melino income across
 
-## Architecture
+Export a line-level CSV through Melino Reports. Select ISRC, units and net income, plus territory and reseller when available. Reports have configurable columns; supply --map for your exact headers. Set up contracts and opening recoupment balances separately, then use /import for a dry run and the confirmed load. [Mapping, source links and limits](docs/replace-melino.md).
 
-```
-music-royalties-for-claude-code/
-  CLAUDE.md                 how the operator wants this run (routing table + house rules)
-  AGENTS.md                 the same, for Codex / OpenCode / Cursor / Gemini CLI
-  .claude/commands/         the slash commands
-  scripts/                  the CLI the commands drive
-  scripts/lib/db.mjs        one adapter: DATABASE_URL (pg) or embedded PGlite
-  supabase/migrations/      plain SQL schema
-  supabase/seed.sql         demo data
-  docs/                     the thesis and the migration guide
-```
+Original CSV text, source reference and fingerprint stay in the database. Identical imports are idempotent within a period. Reusing a report code with changed content fails. Unknown ISRCs are retained as unmatched and block calculation. /revise-sale retains the previous amount and reason, clears source review and invalidates approvals.
 
-## Built for coding agents
+## Calculation policy
 
-The database, CLI and command recipes work with Claude Code, Codex, OpenCode or Cursor. Ask your coding agent for a new command and have it implement and test the change against the same records.
+A contract is one rights holder's percentage of a recording's net income, covering the entire period in its currency. Combined overlapping shares cannot exceed 100 percent. The remaining share belongs outside this rights-holder calculation; no total of 100 percent is required. Partial-period terms and mixed contract currencies block calculations rather than inventing apportionment or exchange rates.
 
-## Contributing
+Amounts and royalty results retain six decimal places. Rate precision is four places. Earned royalty is net income times the agreed percentage. Available amount is the positive excess after opening debt and new contract-approved costs. Negative income increases the unrecouped balance. Earlier periods must be locked before their closing balance carries forward. Costs are entered under the operator's agreed contract policy, never inferred from receipts. These rules require review against your actual agreements.
 
-Issues and pull requests are welcome. Keep the shape: plain SQL, a small CLI, a slash command per recurring job, no front end.
+Missing income reports, source-review gaps, unmatched lines, open actions and old backup evidence prevent calculation. A correction invalidates approvals. Every snapshot keeps its contract, sale lines and cost inputs. A different named reviewer approves current calculations before the period locks. CLI locks do not prevent the database owner editing data directly. Shared deployment needs real access control and backups.
 
-## Want it installed and run for you?
+No cross-contract netting, escalations, minimum payouts, reserves, tax, foreign-exchange conversion, bank feeds, publishing registrations or payment handling is included. A full migration must reconcile to existing statements before operational use. The displayed available amount is a working royalty amount, never proof of payment or an instruction to pay.
 
-Enterprise DNA installs Music Royalties for Claude Code for your business, migrates your Melino data, connects it to the rest of your tools, and runs it for you as part of **Omni**, our managed Command Center. One setup fee, then a monthly retainer.
+## Documents and views
 
-- Book a call: [enterprisedna.co/omni/book](https://enterprisedna.co/omni/book/?offer=replace-software&utm_source=github&utm_medium=readme&utm_campaign=melino)
-- Read more: [enterprisedna.co/omni/instead-of/melino](https://enterprisedna.co/omni/instead-of/melino?utm_source=github&utm_medium=readme&utm_campaign=melino)
+brand.json controls business name, colours and logo. npm run docs renders statement working papers and source-reconciliation packs. npm run view renders the week, income and provisional recoupment. /draft-statement writes to drafts/ and sends nothing. [What a screen adds](docs/why-no-front-end.md). [Compliance checks and their sources](docs/compliance.md).
 
-## License
+## Your first hour: ten things to ask for
 
-MIT. Copyright (c) 2026 Enterprise DNA.
+1. Put our label name on the working statement.
+2. Add the people who own our royalty reviews.
+3. Add a recording with its ISRC.
+4. Record the agreed net-income share and agreement reference.
+5. Open our next reporting period.
+6. Test one Melino report without saving it.
+7. Show the income lines needing an ISRC match.
+8. Explain which advance absorbs this artist's earnings.
+9. Draft the close questions with owners and dates.
+10. Add our statement columns and review checklist.
+
+/customise writes and tests a migration. /new-view adds a read-only question. Export all domain records with npm run royalties -- export --dir=exports/backup. That archive is evidence, not an automated restore procedure; use and test database-native backups.
+
+## Verification
+
+npm test uses an isolated temporary database and exercises every operation, imports, rollback, corrections, approvals, locks and carry-forward. CI covers Windows and Linux on Node 20 and 22, plus PostgreSQL 17. [What actually ran](docs/verification.md).
+
+MIT. Not affiliated with Melino or Anthropic. [Selection evidence](docs/research.md).

@@ -1,43 +1,58 @@
-# Music Royalties for Claude Code: operating instructions
+# Music Royalties for Claude Code
 
-This file is the brain. Claude Code reads it at the start of every session. It says who this is for, how work gets done, and the one right way to do each recurring job.
+For a label operations or royalty manager preparing recorded-music royalty working papers. Configure the business name in brand.json. Fictional data is for demonstration only.
 
-## Who this is for
+## Rules
 
-- **Business:** [YOUR BUSINESS]
-- **Operator:** [YOUR NAME], [your role]
-- **What matters most:** [the one or two outcomes you care about]
+Start every answer with the CLI's current records. One operational CLI: scripts/royalties.mjs. Use a confirmed DATA_DIR or DATABASE_URL. Never mix demonstration and business records. No sends, payments, bank details, tax calculation or deletion commands. Draft documents remain in drafts/. The operator reviews any external use.
 
-Fill this in once. A worker with context knows. A worker without it guesses.
+The supported calculation is a fixed percentage of net income per recording and rights holder, in one currency per period. Agreements must cover the entire period. Opening unrecouped costs and new agreed costs are deducted from earnings; negative earnings increase the unrecouped balance. This is a working calculation, not a payment order. No currency conversion, minimum payout, reserves, tax, publishing-society registration or distribution delivery is implemented. Never infer these rules from a contract.
 
-## How to work
+Do not finalise a statement with unmatched income, missing contract coverage, unreconciled sources or open actions. Calculate after changes, then obtain a different reviewer's recorded approval. Lock the period only when compliance clears. Older periods close first. Locked records cannot be changed through this CLI; corrections require a planned migration with original evidence retained. New future agreements remain addable. Changes are transactionally logged; --actor is a declared name, not authenticated identity. A database owner can bypass these controls. Team authentication and access control must be designed before shared deployment.
 
-1. **Take a brief, not a script.** The operator describes the outcome. You run the right command and present the answer.
-2. **Read before you write.** Before drafting anything about a record, read its full history first.
-3. **Plain language.** Short sentences. No filler. Numbers in tables.
-4. **Silent success, loud problems.** No play-by-play. Say what broke and what you did about it.
-5. **Stop at the line.** Anything that sends, deletes, or faces a customer waits for a yes in this session.
+Amounts use six decimal places. Round only at the agreed downstream accounting boundary; no payment is made here. Do not present an open-period estimate as a final entitlement. The next period's recoupment is provisional until earlier periods are locked.
 
-## Routing table: one right way for each recurring job
+## Routing table
 
-| When the operator asks for... | Use this |
+| Request | Recipe |
 |---|---|
-| <!-- TODO(author): one row per slash command --> | `/...` |
+| List supported operations | /help |
+| Read the rights-holder register | /partners |
+| Read the recording catalogue | /tracks |
+| Read statement periods and locks | /periods |
+| Read documented recording shares | /contracts |
+| Review distributor income by territory | /income |
+| Inspect source income lines | /sales |
+| Find recordings not matched to the catalogue | /unmatched |
+| Review advances and agreed recoupments | /recoupment |
+| Read calculation snapshots and approvals | /statements |
+| Review recoupable cost evidence | /costs |
+| Run the royalty close desk | /attention |
+| Read unfinished close actions | /actions-due |
+| Review rights ending within the next 90 days | /contract-expiry |
+| Check sources, review evidence and retention readiness | /compliance |
+| Read recorded changes and earlier values | /history |
+| Prepare the weekly royalty review | /weekly-review |
+| Add a rights holder | /add-partner |
+| Add a recording to the catalogue | /add-track |
+| Open a statement period | /add-period |
+| Record an agreed royalty share | /add-contract |
+| Log a contract-approved recoupment | /add-cost |
+| Log a close question | /add-action |
+| Record the answer to a close question | /complete-action |
+| Resolve an unidentified recording | /match-income |
+| Correct a source amount and keep its old value | /revise-sale |
+| Record the source-total review | /reconcile |
+| Calculate the contract statements | /calculate |
+| Record independent statement review | /approve-statement |
+| Close the reviewed royalty period | /lock-period |
+| Log a successful backup restoration check | /record-backup |
+| Bring a prepared Melino income export across | /import |
+| Export the complete royalty working record | /export |
+| Draft the reviewed royalty working paper | /draft-statement |
+| Change fields or rules | /customise |
+| Add a read-only report | /new-view |
 
-If an ask fits nothing here, run the CLI directly (`npm run <cli> -- --help`) and then propose a new command for it.
+## Files
 
-## Hard rules
-
-- Never send email or messages from here. Draft to `drafts/`, a person sends.
-- Never delete records without an explicit yes in this session. Prefer marking closed or archived.
-- Never invent a record. If a name is ambiguous, list the candidates and ask.
-- The database is the source of truth. If the answer is not in it, say so.
-
-## Where things live
-
-- `scripts/` the CLI. `scripts/lib/db.mjs` picks `DATABASE_URL` (Postgres, Supabase) or the embedded database in `.data/`.
-- `supabase/migrations/` the schema, plain SQL. `npm run migrate` applies it.
-- `.claude/commands/` the slash commands. Add one every time the same ask comes twice.
-- `docs/` the thesis and the guide for moving off Melino.
-
-Built by Enterprise DNA. Installed and run for you as part of Omni: https://enterprisedna.co/omni/instead-of/melino
+supabase/migrations holds numbered migrations. supabase/seed.sql holds fictional examples. scripts/lib/db.mjs chooses PGlite locally or PostgreSQL with DATABASE_URL. brand.json controls both documents.json and views.json output. docs/replace-melino.md is the import contract. docs/compliance.md maps checks to sources. AGENTS.md serves Codex, OpenCode and Cursor using these same recipes.

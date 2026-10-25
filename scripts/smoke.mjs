@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
+import {getDb,REPO_ROOT} from './lib/db.mjs';import {migrate} from './migrate.mjs';import {seed} from './seed.mjs';import {run,commands} from './royalties.mjs';import {parseCsv} from './lib/csv.mjs';
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'royalty-test-'));process.env.DATA_DIR=path.join(temp,'db');process.env.OUTPUT_DIR=temp;process.env.DATABASE_URL=process.env.TEST_DATABASE_URL||'';
+let db=await getDb(),checks=0;const covered=new Set(),actor='--actor=Preparer',p='--period=2026-Q3',q='--period=2026-Q4';
+const check=(v,m)=>{assert.ok(v,m);checks++;};const call=async(c,...args)=>{covered.add(c);return run(db,[c,...args]);};const fails=async(c,args,re)=>{await assert.rejects(()=>call(c,...args),re);checks++;};
+const fixture=path.join(REPO_ROOT,'tests/fixtures/melino.csv');const imp=(code,file=fixture,period=p)=>['melino',period,`--code=${code}`,`--file=${file}`,'--source=Fictional report',actor];
+try{
+ if(process.env.TEST_DATABASE_URL)check(!(await db.query("select to_regclass('public.partners') existing"))[0].existing,'TEST_DATABASE_URL must be an empty disposable database');
+ await migrate(db);check((await migrate(db)).ran.length===0,'idempotent migrations');await seed(db);await seed(db);check((await call('partners')).length===2,'idempotent seed');
+ for(const cmd of commands.slice(0,17))check(Array.isArray(await call(cmd,p)),cmd);
+ const rec=await call('recoupment',p);check(rec.find(x=>x.contract==='HARBOUR-50').available_amount==='350.000000','flat share and recoupment');check(rec.find(x=>x.contract==='SOUTH-40').closing_amount==='220.000000','unrecouped advance');
+ await fails('calculate',[p,actor],/blocked/);await fails('lock-period',[p,actor,'--note=Reviewed'],/blocked/);
+ await call('import',...imp('DRY'),'--dry-run');check((await db.query("select 1 from imports where code='DRY'")).length===0,'dry run rolls back entire batch');
+ await fails('import',imp('BAD',path.join(REPO_ROOT,'tests/fixtures/bad.csv')),/plain decimal/);check((await db.query("select 1 from imports where code='BAD'")).length===0,'malformed row rolls back earlier rows and receipt');
+ await call('import',...imp('INCOME'));check((await call('import',...imp('AGAIN')))[0].unchanged,'same source bytes idempotent');
+ const modified=path.join(temp,'modified.csv');fs.writeFileSync(modified,fs.readFileSync(fixture,'utf8').replace('100.123456','101.123456'));await fails('import',imp('INCOME',modified),/never overwrite/);
+ await call('match-income',p,'--reported=UNKNOWN','--track=night ferry','--reason=Distributor confirmed ISRC',actor);check((await call('unmatched',p)).length===0,'matching source without destroying original identifier');
+ await call('complete-action',p,'--action=CHECK-ISRC','--result=Distributor confirmed the recording',actor);
+ await call('record-backup',`--date=${new Date().toISOString().slice(0,10)}`,'--evidence=Fictional isolated restore checked',actor);
+ await fails('record-backup',['--date=2099-01-01','--evidence=No',actor],/future/);
+ await fails('reconcile',[p,'--total=0','--source=report','--note=Test',actor],/differs/);
+ const total=(await db.query('select sum(net_amount)::text total from sales where period_id=(select id from periods where code=$1)',['2026-Q3']))[0].total;
+ await call('reconcile',p,`--total=${total}`,'--source=Fictional aggregate reports','--note=Line totals checked',actor);
+ check((await call('compliance',p)).every(x=>x.rule==='CALCULATION'),'only calculation remains');
+ await call('calculate',p,actor);const statements=await call('statements',p);check(statements.length===2,'one statement per contract');check(statements.find(x=>x.code.endsWith('HARBOUR-50')).earned_amount==='565.061728','micro precision retained');
+ await fails('approve-statement',[p,`--statement=${statements[0].code}`,actor,'--note=Checked'],/different reviewer/);
+ for(const s of statements)await call('approve-statement',p,`--statement=${s.code}`,'--actor=Reviewer','--note=Contract and source checked');
+ const original=(await call('sales',p)).find(x=>x.reported_isrc==='NZABC2600001');await call('revise-sale',p,`--sale=${original.id.slice(0,12)}`,'--net=1100','--reason=Distributor correction','--source=Corrected statement',actor);
+ check((await call('statements',p)).every(x=>!x.approved_by),'correction invalidates review');check((await call('compliance',p)).some(x=>x.rule==='STALE'),'stale calculations flagged');
+ check((await call('history')).some(x=>x.name==='revise-sale'&&x.detail.before.net_amount==='1000.000000'),'old amount retained');
+ await fails('approve-statement',[p,`--statement=${statements[0].code}`,'--actor=Reviewer','--note=No'],/Stale/);
+ await call('add-partner','--code=EXTRA','--name=Harbour Sessions Two','--owner=Tui',actor);
+ await fails('add-contract',['--code=AMB','--name=Ambiguous','--partner=Harbour Sessions','--track=Long Road','--start=2027-01-01','--end=2027-12-31','--currency=NZD','--rate=10','--source=Example',actor],/Ambiguous/);
+ await call('add-track','--code=NZABC2600003','--name=Open Water','--artist=Test Artist',actor);
+ await call('add-contract','--code=EXTRA-C','--name=New recording contract','--partner=EXTRA','--track=Open Water','--start=2026-01-01','--end=2027-12-31','--currency=NZD','--rate=25','--source=Example agreement',actor);
+ await fails('add-contract',['--code=TOO-MUCH','--name=Too much','--partner=EXTRA','--track=Night Ferry','--start=2026-01-01','--end=2027-12-31','--currency=NZD','--rate=60','--source=Example',actor],/100 percent/);
+ await call('add-cost',p,'--code=MASTER','--name=Approved mastering','--contract=HARBOUR-50','--amount=20.123456','--source=Fictional receipt',actor);
+ await call('add-action',p,'--code=HTML','--name=<script>alert(1)</script>','--owner=Test','--due=2026-10-20',actor);
+ await call('complete-action',p,'--action=HTML','--result=Reviewed',actor);
+ await fails('add-action',[p,'--code=DATE','--name=Invalid date','--owner=Test','--due=2026-02-30',actor],/Invalid date/);
+ await fails('add-cost',[p,'--code=BAD-COST','--name=No','--contract=HARBOUR-50','--amount=-1','--source=Source',actor],/plain decimal/);
+ await fails('add-period',['--code=OVERLAP','--name=Overlap','--start=2026-09-01','--end=2026-09-30','--due=2026-10-20','--currency=NZD',actor],/overlap/);
+ await call('add-period','--code=2027-Q1','--name=Next year','--start=2027-01-01','--end=2027-03-31','--due=2027-04-30','--currency=NZD',actor);
+ const total2=(await db.query("select sum(net_amount)::text total from sales where period_id=(select id from periods where code='2026-Q3')"))[0].total;
+ await call('reconcile',p,`--total=${total2}`,'--source=Corrected reports','--note=Rechecked',actor);await call('calculate',p,actor);
+ for(const s of await call('statements',p))await call('approve-statement',p,`--statement=${s.code}`,'--actor=Reviewer','--note=Rechecked');
+ check((await call('compliance',p)).length===0,'all checks clear');
+ const draft=await call('draft-statement','--statement=2026-Q3-HARBOUR-50');check(fs.readFileSync(draft[0].file,'utf8').includes('Royalty working statement'),'draft document');
+ await call('lock-period',p,'--note=Reviewed close',actor);
+ await fails('import',imp('LOCKED'),/locked/);await fails('revise-sale',[p,`--sale=${original.id}`,'--net=1','--reason=no','--source=no',actor],/locked/);
+ await fails('add-contract',['--code=PAST','--name=Past','--partner=EXTRA','--track=Long Road','--start=2026-01-01','--end=2027-12-31','--currency=NZD','--rate=10','--source=Example',actor],/locked/);
+ // Future terms remain addable after the historical quarter is locked.
+ await call('add-contract','--code=FUTURE','--name=Future share','--partner=EXTRA','--track=Night Ferry','--start=2027-01-01','--end=2027-12-31','--currency=NZD','--rate=10','--source=Future agreement',actor);
+ check((await call('recoupment',q)).find(x=>x.contract==='SOUTH-40').opening_amount==='220.800000','locked prior recoupment carried forward including negative return');
+ await call('import',...imp('Q4',fixture,q));await call('reconcile',q,'--total=98.123456','--source=Quarter source','--note=Checked',actor);await call('calculate',q,actor);
+ const exportResult=await call('export',`--dir=${path.join(temp,'exports')}`);const backup=JSON.parse(fs.readFileSync(exportResult[0].file));check(Object.keys(backup.records).length===11,'all domain tables exported');check(backup.records.imports.some(x=>x.raw_text.includes('isrc,units,net')),'original source exported');check(backup.records.statements[0].snapshot.contract.source,'contract source snapshot');
+ check(parseCsv('\ufeffa,b\r\n"one\ntwo","say ""yes"""')[0].b==='say "yes"','CSV newline quotes BOM');assert.throws(()=>parseCsv('a,a\n1,2'),/unique/);checks++;assert.throws(()=>parseCsv('a,b\n"bad,2'),/unclosed/);checks++;
+ check(commands.every(x=>covered.has(x)),'every command exercised');
+ await db.close();db=null;
+ const child=(script,args=[],env={})=>spawnSync(process.execPath,[path.join(REPO_ROOT,'scripts',script),...args],{cwd:REPO_ROOT,env:{...process.env,...env},encoding:'utf8'});
+ for(const script of ['docs.mjs','view.mjs']){const res=child(script);check(res.status===0,res.stderr);}
+ const docdir=path.join(temp,'docs-out/royalty-statement');check(fs.readdirSync(docdir).length>=3,'paperwork for every statement');
+ const cli=child('royalties.mjs',['partners','--json']);check(cli.status===0&&JSON.parse(cli.stdout).length===3,'machine output');
+ const ambiguity=child('royalties.mjs',['add-contract','--partner=Harbour Sessions',actor,'--json']);check(ambiguity.status===1&&JSON.parse(ambiguity.stderr).error.includes('Ambiguous'),'ambiguous CLI lists matches and exits one');
+ const unknown=child('royalties.mjs',['does-not-exist','--json']);check(unknown.status===1,'bad command fails');
+ for(const script of ['seed.mjs','demo.mjs']){const res=child(script,[],{DATABASE_URL:'postgres://unreachable.invalid/no'});check(res.status!==0&&res.stderr.includes('refuses DATABASE_URL'),'demo guards before connection');}
+ console.log(`PASS: ${checks} checks; all ${covered.size} CLI commands; ${process.env.TEST_DATABASE_URL?'PostgreSQL':'PGlite'}`);
+}finally{await db?.close();fs.rmSync(temp,{recursive:true,force:true});}

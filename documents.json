@@ -1,11 +1,68 @@
 [
   {
-    "name": "example",
-    "title": "TODO(author): the first document this industry must produce",
-    "for_each": "select gen_random_uuid() as id, 'Example' as name",
+    "name": "royalty-statement",
+    "title": "Royalty working statement",
+    "for_each": "select id,code name from statements",
     "file": "name",
     "sections": [
-      { "title": "Details", "sql": "select 'replace me' as item, $1::text as record_id" }
+      {
+        "title": "Review status",
+        "sql": "select p.code period,p.status,p.currency,s.prepared_by,s.approved_by,(s.revision<>p.revision) stale from statements s join periods p on p.id=s.period_id where s.id=$1",
+        "note": "Private working paper. No payment instruction, tax calculation or recipient delivery."
+      },
+      {
+        "title": "Statement amounts",
+        "sql": "select earned_amount,opening_amount,cost_amount,recouped_amount,closing_amount,available_amount from statements where id=$1"
+      },
+      {
+        "title": "Retained calculation inputs",
+        "sql": "select snapshot from statements where id=$1"
+      }
+    ]
+  },
+  {
+    "name": "source-reconciliation",
+    "title": "Income source reconciliation",
+    "for_each": "select id,code name from periods",
+    "file": "name",
+    "sections": [
+      {
+        "title": "Source review",
+        "sql": "select code,currency,status,source_review,reviewed_by from periods where id=$1"
+      },
+      {
+        "title": "Imported reports",
+        "sql": "select code,name,source,fingerprint,actor from imports where period_id=$1"
+      },
+      {
+        "title": "Recorded totals",
+        "sql": "select reseller,territory,sum(units) units,sum(net_amount) net_amount from sales where period_id=$1 group by reseller,territory"
+      },
+      {
+        "title": "Unfinished actions",
+        "sql": "select code,name,owner,due_on from actions where period_id=$1 and result is null"
+      }
+    ]
+  },
+  {
+    "name": "contract-royalty-schedule",
+    "title": "Provisional contract royalty schedule",
+    "for_each": "select id,code name from contracts",
+    "file": "name",
+    "sections": [
+      {
+        "title": "Agreement",
+        "sql": "select code,name,rate,currency,start_on,end_on,source from contracts where id=$1"
+      },
+      {
+        "title": "Projected recoupment",
+        "note": "Provisional. Source checks and earlier period closure must clear before statement approval. No payment instruction.",
+        "sql": "select period,currency,earned_amount,opening_amount,cost_amount,recouped_amount,closing_amount,available_amount from v_recoupment where contract_id=$1 order by period"
+      },
+      {
+        "title": "Saved statement reviews",
+        "sql": "select code,revision,prepared_by,approved_by from statements where contract_id=$1"
+      }
     ]
   }
 ]

@@ -1,0 +1,20 @@
+[
+  {
+    "title": "The royalty close queue",
+    "ask": "Which royalty periods still need source review?",
+    "command": "npm run royalties -- attention --period=2026-Q3 --compact",
+    "output": "  period   due on      unmatched  open actions  unapproved  source review     \n  -------  ----------  ---------  ------------  ----------  ------------------\n  2026-Q3  2026-10-15  1          1             0           Source review owed"
+  },
+  {
+    "title": "Income by source",
+    "ask": "What income came from each store and territory?",
+    "command": "npm run royalties -- income --period=2026-Q3 --compact",
+    "output": "  period   currency  reseller        territory  lines  units        net amount \n  -------  --------  --------------  ---------  -----  -----------  -----------\n  2026-Q3  NZD       Demo downloads  AU         1      250.000000   200.000000 \n  2026-Q3  NZD       Demo streams    NZ         2      1012.000000  1030.000000"
+  },
+  {
+    "title": "Recoupment before approval",
+    "ask": "Which royalties are absorbed by advances and costs?",
+    "command": "npm run royalties -- recoupment --period=2026-Q3 --compact",
+    "output": "  contract    currency  earned      recouped    carried     available \n  ----------  --------  ----------  ----------  ----------  ----------\n  SOUTH-40    NZD       80.000000   80.000000   220.000000  0.000000  \n  HARBOUR-50  NZD       500.000000  150.000000  0.000000    350.000000"
+  }
+]

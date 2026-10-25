@@ -1,13 +1,39 @@
 [
   {
     "name": "week",
-    "title": "This week",
-    "subtitle": "Music Royalties for Claude Code: what needs attention, rendered by npm run view",
+    "title": "Royalty review this week",
     "sections": [
       {
-        "title": "Needs attention",
-        "note": "TODO(author): point this at the industry's attention view (overdue, stuck, quiet).",
-        "sql": "select 'replace me' as item, 'TODO(author)' as why"
+        "title": "Open periods",
+        "sql": "select * from v_attention order by due_on"
+      },
+      {
+        "title": "Unfinished actions",
+        "sql": "select code,name,owner,due_on from actions where result is null order by due_on"
+      }
+    ]
+  },
+  {
+    "name": "income",
+    "title": "Income and matching",
+    "sections": [
+      {
+        "title": "Source income",
+        "sql": "select * from v_income order by period,reseller,territory"
+      },
+      {
+        "title": "Unmatched recordings",
+        "sql": "select * from v_unmatched order by period,reported_isrc"
+      }
+    ]
+  },
+  {
+    "name": "recoupment",
+    "title": "Recoupment working schedule",
+    "sections": [
+      {
+        "title": "Provisional until the period is reviewed",
+        "sql": "select period,contract,partner,track,currency,earned_amount,opening_amount,cost_amount,recouped_amount,closing_amount,available_amount from v_recoupment order by period,contract"
       }
     ]
   }
